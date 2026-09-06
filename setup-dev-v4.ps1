@@ -73,12 +73,12 @@ function Remove-JavaBinsFromMachinePath {
 
     $entries = $machinePath -split ';' | Where-Object { $_ -and $_.Trim() }
     $filtered = $entries | Where-Object {
-        $_ -notmatch '^C:\\Program Files\\Eclipse Adoptium\\jdk-[^;]+\\bin$'
+        $_ -notmatch '^C:\\Program Files\\Eclipse Adoptium\\(?:jdk|jre)-[^;]+\\bin$'
     }
 
     if ($filtered.Count -ne $entries.Count) {
         [Environment]::SetEnvironmentVariable('Path', ($filtered -join ';'), 'Machine')
-        Write-Host 'Removed competing Eclipse Adoptium JDK bin entries from machine PATH.'
+        Write-Host 'Removed competing Eclipse Adoptium JDK/JRE bin entries from machine PATH.'
     }
 }
 
@@ -369,8 +369,8 @@ try {
 
     Write-Step 'Java environment'
     foreach ($version in $javaVersions) {
-        $home = [Environment]::GetEnvironmentVariable("JAVA_HOME_$version", 'Machine')
-        if ($home) { Write-Host "Java $version -> $home" }
+        $javaHome = [Environment]::GetEnvironmentVariable("JAVA_HOME_$version", 'Machine')
+        if ($javaHome) { Write-Host "Java $version -> $javaHome" }
     }
     Write-Host "JAVA_HOME -> $([Environment]::GetEnvironmentVariable('JAVA_HOME','Machine'))"
 
