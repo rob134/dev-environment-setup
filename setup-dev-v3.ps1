@@ -63,14 +63,17 @@ foreach ($version in $javaVersions) {
     $jdk = $jdkRoots | Where-Object { $_.Name -match "^jdk-$version(\.|-)" } | Select-Object -First 1
     if ($jdk) {
         Set-SystemVariable "JAVA_HOME_$version" $jdk.FullName
-        Add-SystemPath (Join-Path $jdk.FullName 'bin')
     } else {
         Write-Warning "Java $version not found. Install Temurin JDK $version if required."
     }
 }
 
 $jdk21 = [Environment]::GetEnvironmentVariable('JAVA_HOME_21','Machine')
-if ($jdk21) { Set-SystemVariable 'JAVA_HOME' $jdk21 }
+if ($jdk21) {
+    Set-SystemVariable 'JAVA_HOME' $jdk21
+    # Put only the default JDK on PATH to avoid java.exe resolving to another JDK.
+    Add-SystemPath "$jdk21\bin"
+}
 
 # Maven
 $mavenVersion = '3.9.16'
@@ -147,10 +150,8 @@ $kafkaRoot = Get-ChildItem $kafkaBase -Directory -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -like 'kafka_*' } | Select-Object -First 1
 if (-not $kafkaRoot) {
     Download-File "https://downloads.apache.org/kafka/$kafkaVersion/kafka_2.13-$kafkaVersion.tgz" $kafkaArchive
-    $tar = "$kafkaBase\kafka_2.13-$kafkaVersion.tar"
-    & 7z x $kafkaArchive -so | Set-Content -Encoding Byte $tar
-    & 7z x $tar -o$kafkaBase -y | Out-Null
-    Remove-Item $tar -Force -ErrorAction SilentlyContinue
+    # Windows 10/11 includes tar. It can extract gzip-compressed tar archives directly.
+    & tar -xzf $kafkaArchive -C $kafkaBase
     $kafkaRoot = Get-ChildItem $kafkaBase -Directory -ErrorAction SilentlyContinue |
         Where-Object { $_.Name -like 'kafka_*' } | Select-Object -First 1
 }
